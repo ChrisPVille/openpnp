@@ -40,9 +40,6 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
     @Attribute(required = false)
     private double zGap = 2;
 
-    @Attribute(required = false)
-    private boolean homeZ = false;
-
     protected double x, y, zA, c, c2;
     private Thread readerThread;
     private boolean disconnectRequested;
@@ -59,40 +56,33 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
         if (connected) {
             if (enabled) {
                 n1Vacuum(false);
-                n1Exhaust(false);
                 n2Vacuum(false);
-                n2Exhaust(false);
                 led(true);
             }
             else {
                 sendCommand("M84");
                 n1Vacuum(false);
-                n1Exhaust(false);
                 n2Vacuum(false);
-                n2Exhaust(false);
                 led(false);
-                pump(false);
             }
         }
     }
 
     @Override
     public void home(ReferenceHead head) throws Exception {
-        if (homeZ) {
-            // Home Z
-            sendCommand("G28 Z0", 10 * 1000);
-            // Move Z to 0
-            sendCommand("G0 Z0");
-        }
-        else {
-            // We "home" Z by turning off the steppers, allowing the
-            // spring to pull the nozzle back up to home.
-            sendCommand("M84");
-            // And call that zero
-            sendCommand("G92 Z0");
-            // And wait a tick just to let things settle down
-            Thread.sleep(250);
-        }
+        // We "home" Z by turning off the steppers, allowing the
+        // spring to pull the nozzle back up to home.
+        sendCommand("M84");
+        Thread.sleep(250);
+        // And call that zero
+        sendCommand("G92 Z0");
+	sendCommand("G0 Z-45");
+        sendCommand("M84");
+        Thread.sleep(250);
+	// Then send the home command
+	sendCommand("G28 Z0", 10 * 1000);
+        sendCommand("G92 Z-4");
+
         // Home X and Y
         sendCommand("G28 X0 Y0", 60 * 1000);
         // Zero out the two "extruders"
@@ -107,10 +97,15 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
 
     @Override
     public void actuate(ReferenceActuator actuator, boolean on) throws Exception {
-        // if (actuator.getIndex() == 0) {
-        // sendCommand(on ? actuatorOnGcode : actuatorOffGcode);
-        // dwell();
-        // }
+        if (actuator.getIndex() == 0) {
+        sendCommand(on ? "M804" : "M805");
+        }
+	else if (actuator.getIndex() == 1) {
+	sendCommand(on ? "M800" : "M801");
+	}
+	else if (actuator.getIndex() == 2) {
+	sendCommand(on ? "M802" : "M803");
+	}
     }
 
 
@@ -124,7 +119,7 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
         if (hm instanceof ReferenceNozzle) {
             ReferenceNozzle nozzle = (ReferenceNozzle) hm;
             double z = Math.sin(Math.toRadians(this.zA)) * zCamRadius;
-            if (getNozzleIndex(nozzle) == 1) {
+            if (getNozzleIndex(nozzle) == 0) {
                 z = -z;
             }
             z += zCamWheelRadius + zGap;
@@ -214,7 +209,7 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
         if (!Double.isNaN(z)) {
             double a = Math.toDegrees(Math.asin((z - zCamWheelRadius - zGap) / zCamRadius));
             Logger.debug("nozzle {} {} {}", z, zCamRadius, a);
-            if (nozzleIndex == 1) {
+            if (nozzleIndex == 0) {
                 a = -a;
             }
             if (a != this.zA) {
@@ -246,14 +241,10 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
     @Override
     public void pick(ReferenceNozzle nozzle) throws Exception {
         if (getNozzleIndex(nozzle) == 0) {
-            pump(true);
-            n1Exhaust(false);
             n1Vacuum(true);
             n1Picked = true;
         }
         else {
-            pump(true);
-            n2Exhaust(false);
             n2Vacuum(true);
             n2Picked = true;
         }
@@ -263,23 +254,11 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
     public void place(ReferenceNozzle nozzle) throws Exception {
         if (getNozzleIndex(nozzle) == 0) {
             n1Picked = false;
-            if (!n1Picked && !n2Picked) {
-                pump(false);
-            }
             n1Vacuum(false);
-            n1Exhaust(true);
-            Thread.sleep(500);
-            n1Exhaust(false);
         }
         else {
             n2Picked = false;
-            if (!n1Picked && !n2Picked) {
-                pump(false);
-            }
             n2Vacuum(false);
-            n2Exhaust(true);
-            Thread.sleep(500);
-            n2Exhaust(false);
         }
     }
 
@@ -530,23 +509,11 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
         sendCommand(on ? "M800" : "M801");
     }
 
-    private void n1Exhaust(boolean on) throws Exception {
+    private void n2Vacuum(boolean on) throws Exception {
         sendCommand(on ? "M802" : "M803");
     }
 
-    private void n2Vacuum(boolean on) throws Exception {
-        sendCommand(on ? "M804" : "M805");
-    }
-
-    private void n2Exhaust(boolean on) throws Exception {
-        sendCommand(on ? "M806" : "M807");
-    }
-
-    private void pump(boolean on) throws Exception {
-        sendCommand(on ? "M808" : "M809");
-    }
-
     private void led(boolean on) throws Exception {
-        sendCommand(on ? "M810" : "M811");
+        sendCommand(on ? "M804" : "M805");
     }
 }
