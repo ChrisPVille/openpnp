@@ -76,11 +76,14 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
         Thread.sleep(250);
         // And call that zero
         sendCommand("G92 Z0");
+	// Now move the head clockwise to ensure it is off of the microswitch
 	sendCommand("G0 Z-45");
+	// Once again let the head return to neutral
         sendCommand("M84");
         Thread.sleep(250);
 	// Then send the home command
 	sendCommand("G28 Z0", 10 * 1000);
+	//And correct for the 4degree rotation offset
         sendCommand("G92 Z-4");
 
         // Home X and Y
