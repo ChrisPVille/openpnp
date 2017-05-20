@@ -77,14 +77,14 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
         // And call that zero
         sendCommand("G92 Z0");
 	// Now move the head clockwise to ensure it is off of the microswitch
-	sendCommand("G0 Z-45");
+	sendCommand("G0 Z-4.5");
 	// Once again let the head return to neutral
         sendCommand("M84");
         Thread.sleep(250);
 	// Then send the home command
 	sendCommand("G28 Z0", 10 * 1000);
 	//And correct for the 4degree rotation offset
-        sendCommand("G92 Z-4");
+        sendCommand("G92 Z-0.4");
 
         // Home X and Y
         sendCommand("G28 X0 Y0", 60 * 1000);
@@ -216,6 +216,7 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
                 a = -a;
             }
             if (a != this.zA) {
+		a/=10;
                 sb.append(String.format(Locale.US, "Z%2.2f ", a));
                 this.zA = a;
             }
@@ -350,6 +351,7 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
                     }
                     else if (comp.startsWith("Z:")) {
                         zA = Double.parseDouble(comp.split(":")[1]);
+			zA*=10;
                     }
                     else if (comp.startsWith("E:")) {
                         c = Double.parseDouble(comp.split(":")[1]);
