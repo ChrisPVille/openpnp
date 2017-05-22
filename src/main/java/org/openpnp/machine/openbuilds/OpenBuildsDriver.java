@@ -55,6 +55,7 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
         }
         if (connected) {
             if (enabled) {
+		sendCommand("M999");
                 n1Vacuum(false);
                 n2Vacuum(false);
                 led(true);
@@ -70,7 +71,11 @@ public class OpenBuildsDriver extends AbstractSerialPortDriver implements Runnab
 
     @Override
     public void home(ReferenceHead head) throws Exception {
-        // We "home" Z by turning off the steppers, allowing the
+        
+	//Reset any triggered limit switches
+	sendCommand("M999");
+        
+	// We "home" Z by turning off the steppers, allowing the
         // spring to pull the nozzle back up to home.
         sendCommand("M84");
         Thread.sleep(250);
