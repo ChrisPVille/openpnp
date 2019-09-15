@@ -19,7 +19,6 @@
 
 package org.openpnp.machine.reference.feeder.wizards;
 
-import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -34,6 +33,7 @@ import org.openpnp.model.Configuration;
 import org.openpnp.util.UiUtils;
 import org.openpnp.vision.pipeline.CvPipeline;
 import org.openpnp.vision.pipeline.ui.CvPipelineEditor;
+import org.openpnp.vision.pipeline.ui.CvPipelineEditorDialog;
 
 import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.FormLayout;
@@ -80,28 +80,20 @@ public class ReferenceLoosePartFeederConfigurationWizard
         });
         panel.add(btnResetPipeline, "4, 2");
         
-        JPanel warningPanel = new JPanel();
-        FlowLayout flowLayout = (FlowLayout) warningPanel.getLayout();
-        contentPanel.add(warningPanel, 0);
-        
         JLabel lblWarningThisFeeder = new JLabel("Warning: This feeder is incomplete and experimental. Use at your own risk.");
         lblWarningThisFeeder.setFont(new Font("Lucida Grande", Font.PLAIN, 16));
         lblWarningThisFeeder.setForeground(Color.RED);
         lblWarningThisFeeder.setHorizontalAlignment(SwingConstants.LEFT);
-        warningPanel.add(lblWarningThisFeeder);
     }
 
     private void editPipeline() throws Exception {
         CvPipeline pipeline = feeder.getPipeline();
-        pipeline.setCamera(Configuration.get().getMachine().getDefaultHead().getDefaultCamera());
-        pipeline.setFeeder(feeder);
+        pipeline.setProperty("camera", Configuration.get().getMachine().getDefaultHead().getDefaultCamera());
+        pipeline.setProperty("feeder", feeder);
         CvPipelineEditor editor = new CvPipelineEditor(pipeline);
-        JDialog dialog = new JDialog(MainFrame.get(), feeder.getPart().getId() + " Pipeline");
-        dialog.getContentPane().setLayout(new BorderLayout());
-        dialog.getContentPane().add(editor);
-        dialog.setSize(1024, 768);
+        JDialog dialog = new CvPipelineEditorDialog(MainFrame.get(), feeder.getPart().getId() + " Pipeline", editor);
         dialog.setVisible(true);
-    }
+}
 
     private void resetPipeline() {
         feeder.resetPipeline();

@@ -21,13 +21,16 @@ package org.openpnp;
 
 import java.awt.EventQueue;
 import java.io.File;
+import java.util.Locale;
 
 import javax.swing.UIManager;
 
 import org.openpnp.gui.MainFrame;
 import org.openpnp.logging.ConsoleWriter;
+import org.openpnp.logging.SystemLogger;
 import org.openpnp.model.Configuration;
 import org.pmw.tinylog.Configurator;
+import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 import org.pmw.tinylog.writers.RollingFileWriter;
 
@@ -61,17 +64,14 @@ public class Main {
             .addWriter(new ConsoleWriter(System.out, System.err))
             .activate();
         Configurator.currentConfig()
-            .formatPattern("{date:yyyy-MM-dd HH:mm:ss} {class_name} {level}: {message}")
+            .formatPattern("{date:yyyy-MM-dd HH:mm:ss.SSS} {class_name} {level}: {message}")
             .activate();
 
         // Redirect the stdout and stderr to the LogPanel
-        // TODO: Temporarily commented out because of stack overflows on shutdown
-        // on Windows. See:
-        // https://github.com/openpnp/openpnp/issues/288
-//        SystemLogger out = new SystemLogger(System.out, Level.INFO);
-//        SystemLogger err = new SystemLogger(System.err, Level.ERROR);
-//        System.setOut(out);
-//        System.setErr(err);
+        SystemLogger out = new SystemLogger(System.out, Level.INFO);
+        SystemLogger err = new SystemLogger(System.err, Level.ERROR);
+        System.setOut(out);
+        System.setErr(err);
     }
     
     private static void monkeyPatchBeansBinding() {
@@ -133,7 +133,7 @@ public class Main {
         }
 
         File configurationDirectory = new File(System.getProperty("user.home"));
-        configurationDirectory = new File(configurationDirectory, ".openpnp");
+        configurationDirectory = new File(configurationDirectory, ".openpnp2");
 
         if (System.getProperty("configDir") != null) {
             configurationDirectory = new File(System.getProperty("configDir"));
@@ -145,12 +145,13 @@ public class Main {
 
         Configuration.initialize(configurationDirectory);
         final Configuration configuration = Configuration.get();
+        Locale.setDefault(Configuration.get().getLocale());
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
                     MainFrame frame = new MainFrame(configuration);
                     frame.setVisible(true);
-                    Logger.debug(String.format("Bienvenue, Willkommen, Hello, Namaskar, Welkom to OpenPnP version %s.", Main.getVersion()));
+                    Logger.debug(String.format("Bienvenue, Bienvenido, Willkommen, Hello, Namaskar, Welkom, Bonjour to OpenPnP version %s.", Main.getVersion()));
                     configuration.getScripting().on("Startup", null);
                 }
                 catch (Exception e) {

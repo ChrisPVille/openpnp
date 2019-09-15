@@ -6,6 +6,7 @@ import org.openpnp.model.AbstractModelObject;
 import org.openpnp.model.Configuration;
 import org.openpnp.model.Location;
 import org.openpnp.spi.Actuator;
+import org.openpnp.spi.Camera;
 import org.openpnp.spi.Head;
 import org.simpleframework.xml.Attribute;
 
@@ -39,6 +40,11 @@ public abstract class AbstractActuator extends AbstractModelObject implements Ac
     }
 
     @Override
+    public Location getCameraToolCalibratedOffset(Camera camera) {
+        return new Location(camera.getUnitsPerPixel().getUnits());
+    }
+
+    @Override
     public String getName() {
         return name;
     }
@@ -51,7 +57,6 @@ public abstract class AbstractActuator extends AbstractModelObject implements Ac
 
     @Override
     public Icon getPropertySheetHolderIcon() {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -67,7 +72,6 @@ public abstract class AbstractActuator extends AbstractModelObject implements Ac
 
     @Override
     public String read() throws Exception {
-        // TODO Auto-generated method stub
         return null;
     }
 }

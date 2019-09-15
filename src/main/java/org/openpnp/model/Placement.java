@@ -35,13 +35,26 @@ import org.simpleframework.xml.core.Persist;
  */
 public class Placement extends AbstractModelObject implements Identifiable {
     public enum Type {
-        Place, Fiducial, Ignore
+        Placement, 
+        Fiducial,
+        @Deprecated
+        Place, 
+        @Deprecated
+        Ignore
+    }
+    
+    public enum ErrorHandling {
+        Alert, Defer
     }
 
     /**
-     * History: 1.0: Initial revision. 1.1: Replaced Boolean place with Type type. Deprecated place.
+     * History: 1.0: Initial revision. 
+     * 1.1: Replaced Boolean place with Type type. Deprecated place.
+     * 1.2: Removed glue attribute.
+     * 1.3: Removed checkFids attribute.
+     * 1.4: Changed Type.Place to Type.Placement, and removed Type.Ignore.
      */
-    @Version(revision = 1.2)
+    @Version(revision = 1.4)
     private double version;
 
     @Attribute
@@ -54,18 +67,19 @@ public class Placement extends AbstractModelObject implements Identifiable {
     @Attribute(required = false)
     private String partId;
 
-    @Attribute
+    @Attribute(required = false)
     private Type type;
 
     private Part part;
 
-    // TODO: Remove after July 1, 2017.
-    @Deprecated
-    @Attribute(required=false)
-    private Boolean glue = null;
+    @Element(required = false)
+    private String comments;
     
-    @Attribute
-    private boolean checkFids;
+    @Element(required = false)
+    private ErrorHandling errorHandling = ErrorHandling.Alert;
+    
+    @Attribute(required = false)
+    private boolean enabled = true;
 
     @SuppressWarnings("unused")
     private Placement() {
@@ -74,7 +88,7 @@ public class Placement extends AbstractModelObject implements Identifiable {
 
     public Placement(String id) {
         this.id = id;
-        this.type = Type.Place;
+        this.type = Type.Placement;
         setLocation(new Location(LengthUnit.Millimeters));
     }
 
@@ -91,7 +105,13 @@ public class Placement extends AbstractModelObject implements Identifiable {
         if (getPart() == null) {
             setPart(Configuration.get().getPart(partId));
         }
-        glue = null;
+        if (getType() == Type.Ignore) {
+            setType(Type.Placement);
+            setEnabled(false);
+        }
+        if (getType() == Type.Place) {
+            setType(Type.Placement);
+        }
     }
 
     public Part getPart() {
@@ -138,15 +158,35 @@ public class Placement extends AbstractModelObject implements Identifiable {
         firePropertyChange("type", oldValue, type);
     }
 
-    public boolean getCheckFids() { return checkFids; }
-
-    public void setCheckFids(boolean checkFids)
-    {
-        Object oldValue = this.checkFids;
-        this.checkFids = checkFids;
-        firePropertyChange("check fids", oldValue, checkFids);
+    public String getComments() {
+        return comments;
     }
 
+    public void setComments(String comments) {
+        Object oldValue = this.comments;
+        this.comments = comments;
+        firePropertyChange("comments", oldValue, comments);
+    }
+    
+    public ErrorHandling getErrorHandling() {
+        return errorHandling;
+    }
+
+    public void setErrorHandling(ErrorHandling errorHandling) {
+        Object oldValue = this.errorHandling;
+        this.errorHandling = errorHandling;
+        firePropertyChange("errorHandling", oldValue, errorHandling);
+    }
+    
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        Object oldValue = this.enabled;
+        this.enabled = enabled;
+        firePropertyChange("enabled", oldValue, enabled);
+    }
 
     @Override
     public String toString() {

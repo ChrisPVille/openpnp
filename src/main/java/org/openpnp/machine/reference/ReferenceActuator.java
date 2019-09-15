@@ -34,6 +34,7 @@ import org.openpnp.model.Configuration;
 import org.openpnp.model.Length;
 import org.openpnp.model.LengthUnit;
 import org.openpnp.model.Location;
+import org.openpnp.spi.Camera;
 import org.openpnp.spi.PropertySheetHolder;
 import org.openpnp.spi.base.AbstractActuator;
 import org.pmw.tinylog.Logger;
@@ -86,6 +87,11 @@ public class ReferenceActuator extends AbstractActuator implements ReferenceHead
     }
 
     @Override
+    public Location getCameraToolCalibratedOffset(Camera camera) {
+        return new Location(camera.getUnitsPerPixel().getUnits());
+    }
+
+    @Override
     public void actuate(double value) throws Exception {
         Logger.debug("{}.actuate({})", getName(), value);
         getDriver().actuate(this, value);
@@ -103,7 +109,7 @@ public class ReferenceActuator extends AbstractActuator implements ReferenceHead
     @Override
     public void moveTo(Location location, double speed) throws Exception {
         Logger.debug("{}.moveTo({}, {})", getName(), location, speed);
-        getDriver().moveTo(this, location, speed);
+        ((ReferenceHead) getHead()).moveTo(this, location, getHead().getMaxPartSpeed() * speed);
         getMachine().fireMachineHeadActivity(head);
     }
 
@@ -113,8 +119,12 @@ public class ReferenceActuator extends AbstractActuator implements ReferenceHead
         Length safeZ = this.safeZ.convertToUnits(getLocation().getUnits());
         Location l = new Location(getLocation().getUnits(), Double.NaN, Double.NaN,
                 safeZ.getValue(), Double.NaN);
-        getDriver().moveTo(this, l, speed);
+        getDriver().moveTo(this, l, getHead().getMaxPartSpeed() * speed);
         getMachine().fireMachineHeadActivity(head);
+    }
+
+    @Override
+    public void home() throws Exception {
     }
 
     @Override
@@ -129,7 +139,6 @@ public class ReferenceActuator extends AbstractActuator implements ReferenceHead
 
     @Override
     public PropertySheetHolder[] getChildPropertySheetHolders() {
-        // TODO Auto-generated method stub
         return null;
     }
 

@@ -15,6 +15,7 @@ import java.io.StringWriter;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -36,7 +37,6 @@ import org.openpnp.spi.Actuator;
 import org.openpnp.spi.Camera;
 import org.openpnp.spi.HeadMountable;
 import org.openpnp.spi.Nozzle;
-import org.openpnp.spi.PasteDispenser;
 import org.simpleframework.xml.Serializer;
 
 import com.jgoodies.forms.layout.ColumnSpec;
@@ -63,6 +63,8 @@ public class GcodeDriverSettings extends AbstractConfigurationWizard {
                 FormSpecs.RELATED_GAP_COLSPEC,
                 FormSpecs.DEFAULT_COLSPEC,},
             new RowSpec[] {
+                FormSpecs.RELATED_GAP_ROWSPEC,
+                FormSpecs.DEFAULT_ROWSPEC,
                 FormSpecs.RELATED_GAP_ROWSPEC,
                 FormSpecs.DEFAULT_ROWSPEC,
                 FormSpecs.RELATED_GAP_ROWSPEC,
@@ -122,12 +124,37 @@ public class GcodeDriverSettings extends AbstractConfigurationWizard {
         settingsPanel.add(backlashFeedRateFactorTf, "4, 8, fill, default");
         backlashFeedRateFactorTf.setColumns(5);
         
+        JLabel lblNewLabel = new JLabel("Driver Name");
+        settingsPanel.add(lblNewLabel, "6, 8, right, default");
+        
+        driverName = new JTextField();
+        driverName.setColumns(5);
+        settingsPanel.add(driverName, "8, 8");
+        
         JLabel lblNonSquarenessFactor = new JLabel("Non-Squareness Factor");
         settingsPanel.add(lblNonSquarenessFactor, "2, 10, right, default");
         
         nonSquarenessFactorTf = new JTextField();
         settingsPanel.add(nonSquarenessFactorTf, "4, 10, fill, default");
         nonSquarenessFactorTf.setColumns(5);
+        
+        JLabel lblVisualHoming = new JLabel("Visual Homing");
+        settingsPanel.add(lblVisualHoming, "6, 10, right, default");
+        
+        visualHoming = new JCheckBox("");
+        settingsPanel.add(visualHoming, "8, 10");
+        
+        JLabel lblBackslashEscapedCharacters = new JLabel("Backslash Escaped Characters");
+        lblBackslashEscapedCharacters.setToolTipText("Allows insertion of unicode characters into Gcode strings as \\uxxxx "
+                + "where xxxx is four hexidecimal characters.  Also permits \\t for tab, \\b for backspace, \\n for line "
+                + "feed, \\r for carriage return, and \\f for form feed.");
+        settingsPanel.add(lblBackslashEscapedCharacters, "2, 12, right, default");
+        
+        backslashEscapedCharacters = new JCheckBox("");
+        backslashEscapedCharacters.setToolTipText("Allows insertion of unicode characters into Gcode strings as \\uxxxx "
+                + "where xxxx is four hexidecimal characters.  Also permits \\t for tab, \\b for backspace, \\n for line "
+                + "feed, \\r for carriage return, and \\f for form feed.");
+        settingsPanel.add(backslashEscapedCharacters, "4, 12");
     }
 
     @Override
@@ -145,6 +172,9 @@ public class GcodeDriverSettings extends AbstractConfigurationWizard {
         addWrappedBinding(driver, "backlashFeedRateFactor", backlashFeedRateFactorTf, "text", doubleConverter);
         addWrappedBinding(driver, "timeoutMilliseconds", commandTimeoutTf, "text", intConverter);
         addWrappedBinding(driver, "connectWaitTimeMilliseconds", connectWaitTimeTf, "text", intConverter);
+        addWrappedBinding(driver, "name", driverName, "text");
+        addWrappedBinding(driver, "visualHomingEnabled", visualHoming, "selected");
+        addWrappedBinding(driver, "backslashEscapedCharactersEnabled", backslashEscapedCharacters, "selected");
         
         ComponentDecorators.decorateWithAutoSelect(maxFeedRateTf);
         ComponentDecorators.decorateWithAutoSelect(backlashOffsetXTf);
@@ -153,6 +183,7 @@ public class GcodeDriverSettings extends AbstractConfigurationWizard {
         ComponentDecorators.decorateWithAutoSelect(backlashFeedRateFactorTf);
         ComponentDecorators.decorateWithAutoSelect(commandTimeoutTf);
         ComponentDecorators.decorateWithAutoSelect(connectWaitTimeTf);
+        ComponentDecorators.decorateWithAutoSelect(driverName);
     }
 
     public final Action exportProfileAction = new AbstractAction() {
@@ -289,6 +320,9 @@ public class GcodeDriverSettings extends AbstractConfigurationWizard {
     private JTextField commandTimeoutTf;
     private JTextField connectWaitTimeTf;
     private JComboBox unitsCb;
+    private JTextField driverName;
+    private JCheckBox visualHoming;
+    private JCheckBox backslashEscapedCharacters;
 
     static class HeadMountableItem {
         private HeadMountable hm;
@@ -309,9 +343,6 @@ public class GcodeDriverSettings extends AbstractConfigurationWizard {
             String type = null;
             if (hm instanceof Nozzle) {
                 type = "Nozzle";
-            }
-            else if (hm instanceof PasteDispenser) {
-                type = "Paste Dispenser";
             }
             else if (hm instanceof Camera) {
                 type = "Camera";

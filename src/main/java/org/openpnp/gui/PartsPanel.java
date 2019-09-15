@@ -21,9 +21,15 @@ package org.openpnp.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Frame;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.prefs.Preferences;
@@ -67,11 +73,13 @@ import org.openpnp.model.Configuration;
 import org.openpnp.model.Location;
 import org.openpnp.model.Part;
 import org.openpnp.spi.Feeder;
+import org.openpnp.spi.FiducialLocator;
 import org.openpnp.spi.Nozzle;
 import org.openpnp.spi.PartAlignment;
 import org.openpnp.util.MovableUtils;
 import org.openpnp.util.UiUtils;
 import org.pmw.tinylog.Logger;
+import org.simpleframework.xml.Serializer;
 
 @SuppressWarnings("serial")
 public class PartsPanel extends JPanel implements WizardContainer {
@@ -95,7 +103,7 @@ public class PartsPanel extends JPanel implements WizardContainer {
         this.configuration = configuration;
         this.frame = frame;
 
-        singleSelectionActionGroup = new ActionGroup(deletePartAction, pickPartAction);
+        singleSelectionActionGroup = new ActionGroup(deletePartAction, pickPartAction, copyPartToClipboardAction);
         singleSelectionActionGroup.setEnabled(false);
         multiSelectionActionGroup = new ActionGroup(deletePartAction);
         multiSelectionActionGroup.setEnabled(false);
@@ -155,9 +163,6 @@ public class PartsPanel extends JPanel implements WizardContainer {
         add(splitPane, BorderLayout.CENTER);
 
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-        JPanel alignmentPanel = new JPanel();
-        alignmentPanel.setLayout(new BorderLayout());
-        tabbedPane.add("Alignment", new JScrollPane(alignmentPanel));
 
         table = new AutoSelectTextTable(tableModel);
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -170,13 +175,22 @@ public class PartsPanel extends JPanel implements WizardContainer {
         table.getTableHeader().setDefaultRenderer(new MultisortTableHeaderCellRenderer());
         splitPane.setLeftComponent(new JScrollPane(table));
         splitPane.setRightComponent(tabbedPane);
-
+        
         JButton btnNewPart = toolBar.add(newPartAction);
         btnNewPart.setToolTipText("");
         JButton btnDeletePart = toolBar.add(deletePartAction);
         btnDeletePart.setToolTipText("");
         toolBar.addSeparator();
         toolBar.add(pickPartAction);
+        
+        toolBar.addSeparator();
+        JButton btnNewButton = new JButton(copyPartToClipboardAction);
+        btnNewButton.setHideActionText(true);
+        toolBar.add(btnNewButton);
+        
+        JButton btnNewButton_1 = new JButton(pastePartToClipboardAction);
+        btnNewButton_1.setHideActionText(true);
+        toolBar.add(btnNewButton_1);
 
         table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
@@ -196,8 +210,6 @@ public class PartsPanel extends JPanel implements WizardContainer {
                     singleSelectionActionGroup.setEnabled(!selections.isEmpty());
                 }
 
-                alignmentPanel.removeAll();
-
                 Part part = getSelection();
 
                 tabbedPane.removeAll();
@@ -206,15 +218,24 @@ public class PartsPanel extends JPanel implements WizardContainer {
                     for (PartAlignment partAlignment : Configuration.get().getMachine().getPartAlignments()) {
                         Wizard wizard=partAlignment.getPartConfigurationWizard(part);
                         if (wizard != null) {
-                            JPanel alignPanel = new JPanel();
-                            alignPanel.setLayout(new BorderLayout());
-                            alignPanel.add(wizard.getWizardPanel());
-                            tabbedPane.add(wizard.getWizardName(), new JScrollPane(alignPanel));
-
+                            JPanel panel = new JPanel();
+                            panel.setLayout(new BorderLayout());
+                            panel.add(wizard.getWizardPanel());
+                            tabbedPane.add(wizard.getWizardName(), new JScrollPane(panel));
                             wizard.setWizardContainer(PartsPanel.this);
                         }
                     }
-
+                    
+                    FiducialLocator fiducialLocator =
+                            Configuration.get().getMachine().getFiducialLocator();
+                    Wizard wizard = fiducialLocator.getPartConfigurationWizard(part);
+                    if (wizard != null) {
+                        JPanel panel = new JPanel();
+                        panel.setLayout(new BorderLayout());
+                        panel.add(wizard.getWizardPanel());
+                        tabbedPane.add(wizard.getWizardName(), new JScrollPane(panel));
+                        wizard.setWizardContainer(PartsPanel.this);
+                    }
                 }
 
                 revalidate();
@@ -332,7 +353,7 @@ public class PartsPanel extends JPanel implements WizardContainer {
                 Feeder feeder = null;
                 // find a feeder to feed
                 for (Feeder f : Configuration.get().getMachine().getFeeders()) {
-                    if (f.isEnabled() && f.getPart().equals(part)) {
+                    if (f.getPart() == part && f.isEnabled()) {
                         feeder = f;
                     }
                 }
@@ -350,6 +371,65 @@ public class PartsPanel extends JPanel implements WizardContainer {
         }
     };
 
+    public final Action copyPartToClipboardAction = new AbstractAction() {
+        {
+            putValue(SMALL_ICON, Icons.copy);
+            putValue(NAME, "Copy Part to Clipboard");
+            putValue(SHORT_DESCRIPTION,
+                    "Copy the currently selected part to the clipboard in text format.");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent arg0) {
+            Part part = getSelection();
+            if (part == null) {
+                return;
+            }
+            try {
+                Serializer s = Configuration.createSerializer();
+                StringWriter w = new StringWriter();
+                s.write(part, w);
+                StringSelection stringSelection = new StringSelection(w.toString());
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(stringSelection, null);
+            }
+            catch (Exception e) {
+                MessageBoxes.errorBox(getTopLevelAncestor(), "Copy Failed", e);
+            }
+        }
+    };
+
+    public final Action pastePartToClipboardAction = new AbstractAction() {
+        {
+            putValue(SMALL_ICON, Icons.paste);
+            putValue(NAME, "Create Part from Clipboard");
+            putValue(SHORT_DESCRIPTION, "Create a new part from a definition on the clipboard.");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent arg0) {
+            try {
+                Serializer ser = Configuration.createSerializer();
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                String s = (String) clipboard.getData(DataFlavor.stringFlavor);
+                StringReader r = new StringReader(s);
+                Part part = ser.read(Part.class, s);
+                for (int i = 0;; i++) {
+                    if (Configuration.get().getPart(part.getId() + "-" + i) == null) {
+                        part.setId(part.getId() + "-" + i);
+                        Configuration.get().addPart(part);
+                        break;
+                    }
+                }
+                tableModel.fireTableDataChanged();
+                Helpers.selectLastTableRow(table);
+            }
+            catch (Exception e) {
+                MessageBoxes.errorBox(getTopLevelAncestor(), "Paste Failed", e);
+            }
+        }
+    };
+    
     @Override
     public void wizardCompleted(Wizard wizard) {}
 

@@ -23,6 +23,7 @@ import org.openpnp.spi.Feeder;
 import org.openpnp.spi.Head;
 import org.openpnp.spi.Machine;
 import org.openpnp.spi.MachineListener;
+import org.openpnp.spi.NozzleTip;
 import org.openpnp.spi.Signaler;
 import org.openpnp.spi.PartAlignment;
 import org.openpnp.util.IdentifiableList;
@@ -75,6 +76,9 @@ public abstract class AbstractMachine extends AbstractModelObject implements Mac
     
     @ElementMap(required = false)
     protected HashMap<String, Object> properties = new HashMap<>();
+    
+    @ElementList(required = false)
+    protected IdentifiableList<NozzleTip> nozzleTips = new IdentifiableList<>();
 
     protected Set<MachineListener> listeners = Collections.synchronizedSet(new HashSet<>());
 
@@ -236,6 +240,20 @@ public abstract class AbstractMachine extends AbstractModelObject implements Mac
         }
     }
 
+    @Override
+    public void addSignaler(Signaler signaler) throws Exception {
+        signalers.add(signaler);
+        fireIndexedPropertyChange("signalers", signalers.size() - 1, null, signalers);
+    }
+
+    @Override
+    public void removeSignaler(Signaler signaler) {
+        int index = signalers.indexOf(signaler);
+        if (signalers.remove(signaler)) {
+            fireIndexedPropertyChange("signalers", index, signaler, null);
+        }
+    }
+
     public void fireMachineHeadActivity(Head head) {
         for (MachineListener listener : listeners) {
             listener.machineHeadActivity(this, head);
@@ -274,7 +292,6 @@ public abstract class AbstractMachine extends AbstractModelObject implements Mac
 
     @Override
     public Icon getPropertySheetHolderIcon() {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -393,5 +410,39 @@ public abstract class AbstractMachine extends AbstractModelObject implements Mac
     @Override
     public void setProperty(String name, Object value) {
         properties.put(name, value);
+    }
+    
+    @Override
+    public List<NozzleTip> getNozzleTips() {
+        return Collections.unmodifiableList(nozzleTips);
+    }
+
+    @Override
+    public void addNozzleTip(NozzleTip nozzleTip) throws Exception {
+        nozzleTips.add(nozzleTip);
+        fireIndexedPropertyChange("nozzleTips", nozzleTips.size() - 1, null, nozzleTip);
+    }
+
+    @Override
+    public void removeNozzleTip(NozzleTip nozzleTip) {
+        int index = nozzleTips.indexOf(nozzleTip);
+        if (nozzleTips.remove(nozzleTip)) {
+            fireIndexedPropertyChange("nozzleTips", index, nozzleTip, null);
+        }
+    }
+    
+    @Override
+    public NozzleTip getNozzleTip(String id) {
+        return nozzleTips.get(id);
+    }
+
+    @Override
+    public NozzleTip getNozzleTipByName(String name) {
+        for (NozzleTip nozzleTip : nozzleTips) {
+            if (nozzleTip.getName().equals(name)) {
+                return nozzleTip;
+            }
+        }
+        return null;
     }
 }

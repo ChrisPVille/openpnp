@@ -36,6 +36,7 @@ import org.openpnp.gui.support.LengthConverter;
 import org.openpnp.gui.support.MutableLocationProxy;
 import org.openpnp.machine.reference.ReferenceNozzle;
 
+import com.jgoodies.forms.layout.CellConstraints;
 import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.FormLayout;
 import com.jgoodies.forms.layout.FormSpecs;
@@ -50,23 +51,17 @@ public class ReferenceNozzleConfigurationWizard extends AbstractConfigurationWiz
     private JTextField locationZ;
     private JPanel panelOffsets;
     private JPanel panelChanger;
-    private JCheckBox chckbxChangerEnabled;
     private JCheckBox chckbxLimitRotationTo;
     private JTextField textFieldSafeZ;
     private JPanel panelProperties;
     private JLabel lblName;
     private JTextField nameTf;
+    private JLabel lblDwellTime;
     private JLabel lblPickDwellTime;
     private JLabel lblPlaceDwellTime;
     private JTextField pickDwellTf;
     private JTextField placeDwellTf;
-    private JLabel lblChangerEnabled;
     private JLabel lblLimitRota;
-    private JPanel panel;
-    private JLabel lblVacuumSenseActuator;
-    private JTextField vacSenseActuatorNameTf;
-    private JLabel lblPartOnLowers;
-    private JCheckBox invertVacuumLogicChk;
 
     public ReferenceNozzleConfigurationWizard(ReferenceNozzle nozzle) {
         this.nozzle = nozzle;
@@ -167,61 +162,30 @@ public class ReferenceNozzleConfigurationWizard extends AbstractConfigurationWiz
                 FormSpecs.DEFAULT_ROWSPEC,
                 FormSpecs.RELATED_GAP_ROWSPEC,
                 FormSpecs.DEFAULT_ROWSPEC,}));
-                
-                lblChangerEnabled = new JLabel("Changer Enabled?");
-                panelChanger.add(lblChangerEnabled, "2, 2, right, default");
         
-                chckbxChangerEnabled = new JCheckBox("");
-                panelChanger.add(chckbxChangerEnabled, "4, 2");
-                
-                lblLimitRota = new JLabel("Limit Rotation to 180º");
-                panelChanger.add(lblLimitRota, "2, 4, right, default");
-        
-                chckbxLimitRotationTo = new JCheckBox("");
-                panelChanger.add(chckbxLimitRotationTo, "4, 4");
+        lblLimitRota = new JLabel("Limit Rotation to 180º");
+        panelChanger.add(lblLimitRota, "2, 2, right, default");
+
+        chckbxLimitRotationTo = new JCheckBox("");
+        panelChanger.add(chckbxLimitRotationTo, "4, 2");
         
         lblPickDwellTime = new JLabel("Pick Dwell Time (ms)");
-        panelChanger.add(lblPickDwellTime, "2, 6, right, default");
+        panelChanger.add(lblPickDwellTime, "2, 4, right, default");
         
         pickDwellTf = new JTextField();
-        panelChanger.add(pickDwellTf, "4, 6, fill, default");
+        panelChanger.add(pickDwellTf, "4, 4, fill, default");
         pickDwellTf.setColumns(10);
         
         lblPlaceDwellTime = new JLabel("Place Dwell Time (ms)");
-        panelChanger.add(lblPlaceDwellTime, "2, 8, right, default");
+        panelChanger.add(lblPlaceDwellTime, "2, 6, right, default");
         
         placeDwellTf = new JTextField();
-        panelChanger.add(placeDwellTf, "4, 8, fill, default");
+        panelChanger.add(placeDwellTf, "4, 6, fill, default");
         placeDwellTf.setColumns(10);
         
-        panel = new JPanel();
-        panel.setBorder(new TitledBorder(null, "Vacuum Sense", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-        contentPanel.add(panel);
-        panel.setLayout(new FormLayout(new ColumnSpec[] {
-                FormSpecs.RELATED_GAP_COLSPEC,
-                FormSpecs.DEFAULT_COLSPEC,
-                FormSpecs.RELATED_GAP_COLSPEC,
-                FormSpecs.DEFAULT_COLSPEC,},
-            new RowSpec[] {
-                FormSpecs.RELATED_GAP_ROWSPEC,
-                FormSpecs.DEFAULT_ROWSPEC,
-                FormSpecs.RELATED_GAP_ROWSPEC,
-                FormSpecs.DEFAULT_ROWSPEC,}));
-        
-        lblVacuumSenseActuator = new JLabel("Vacuum Sense Actuator Name");
-        panel.add(lblVacuumSenseActuator, "2, 2, right, default");
-        
-        vacSenseActuatorNameTf = new JTextField();
-        panel.add(vacSenseActuatorNameTf, "4, 2");
-        vacSenseActuatorNameTf.setColumns(10);
-        
-        lblPartOnLowers = new JLabel("Vacuum Value Decreases On Pick?");
-        panel.add(lblPartOnLowers, "2, 4");
-        
-        invertVacuumLogicChk = new JCheckBox("");
-        panel.add(invertVacuumLogicChk, "4, 4");
-
-
+        CellConstraints cc = new CellConstraints();
+        lblDwellTime = new JLabel("Note: Total Dwell Time is the sum of Nozzle Dwell Time plus the Nozzle Tip Dwell Time.");
+        panelChanger.add(lblDwellTime, "2, 8, 7, 1");
     }
 
     @Override
@@ -236,13 +200,10 @@ public class ReferenceNozzleConfigurationWizard extends AbstractConfigurationWiz
         addWrappedBinding(headOffsets, "lengthY", locationY, "text", lengthConverter);
         addWrappedBinding(headOffsets, "lengthZ", locationZ, "text", lengthConverter);
 
-        addWrappedBinding(nozzle, "changerEnabled", chckbxChangerEnabled, "selected");
         addWrappedBinding(nozzle, "limitRotation", chckbxLimitRotationTo, "selected");
         addWrappedBinding(nozzle, "safeZ", textFieldSafeZ, "text", lengthConverter);
         addWrappedBinding(nozzle, "pickDwellMilliseconds", pickDwellTf, "text", intConverter);
         addWrappedBinding(nozzle, "placeDwellMilliseconds", placeDwellTf, "text", intConverter);
-        addWrappedBinding(nozzle, "vacuumSenseActuatorName", vacSenseActuatorNameTf, "text");
-        addWrappedBinding(nozzle, "invertVacuumSenseLogic", invertVacuumLogicChk, "selected");
 
         ComponentDecorators.decorateWithAutoSelect(nameTf);
         ComponentDecorators.decorateWithAutoSelect(pickDwellTf);
@@ -251,6 +212,5 @@ public class ReferenceNozzleConfigurationWizard extends AbstractConfigurationWiz
         ComponentDecorators.decorateWithAutoSelectAndLengthConversion(locationY);
         ComponentDecorators.decorateWithAutoSelectAndLengthConversion(locationZ);
         ComponentDecorators.decorateWithAutoSelectAndLengthConversion(textFieldSafeZ);
-        ComponentDecorators.decorateWithAutoSelect(vacSenseActuatorNameTf);
     }
 }

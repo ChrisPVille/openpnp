@@ -1,18 +1,18 @@
 package org.openpnp.machine.reference.signaler;
 
-import java.io.IOException;
+import java.io.File;
 
-import javax.swing.Action;
-import javax.swing.Icon;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 
-import org.openpnp.spi.PropertySheetHolder;
+import org.openpnp.gui.support.Wizard;
+import org.openpnp.machine.reference.signaler.wizards.SoundSignalerConfigurationWizard;
+import org.openpnp.model.Configuration;
 import org.openpnp.spi.base.AbstractJobProcessor;
 import org.openpnp.spi.base.AbstractMachine;
 import org.openpnp.spi.base.AbstractSignaler;
 import org.simpleframework.xml.Attribute;
-
-import sun.audio.AudioPlayer;
-import sun.audio.AudioStream;
 
 /**
  * The SoundSignaler can acoustically indicate certain states of the machine or a job processor like errors or
@@ -30,9 +30,23 @@ public class SoundSignaler extends AbstractSignaler {
 
     private void playSound(String filename) {
         try {
-            AudioStream audioStream = new AudioStream(classLoader.getResourceAsStream(filename));
-            AudioPlayer.player.start(audioStream);
-        } catch (IOException e) {
+            AudioInputStream audioInputStream;
+
+            // Check if there is a file in the configuration directory under sounds overriding the resource files
+            File overrideFile = new File(Configuration.get().getConfigurationDirectory(), filename);
+
+            if(overrideFile.exists() && !overrideFile.isDirectory()) {
+                audioInputStream = AudioSystem.getAudioInputStream(overrideFile);
+            } 
+            else {
+                audioInputStream = AudioSystem.getAudioInputStream(classLoader.getResourceAsStream(filename));
+            }
+
+            Clip clip = AudioSystem.getClip();
+            clip.open(audioInputStream);
+            clip.start(); 
+        } 
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -79,27 +93,23 @@ public class SoundSignaler extends AbstractSignaler {
     }
 
     @Override
-    public String getPropertySheetHolderTitle() {
-        return getClass().getSimpleName() + " " + getName();
+    public Wizard getConfigurationWizard() {
+        return new SoundSignalerConfigurationWizard(this);
     }
 
-    @Override
-    public PropertySheetHolder[] getChildPropertySheetHolders() {
-        return new PropertySheetHolder[0];
+    public boolean isEnableErrorSound() {
+        return enableErrorSound;
     }
 
-    @Override
-    public PropertySheet[] getPropertySheets() {
-        return new PropertySheet[0];
+    public void setEnableErrorSound(boolean enableErrorSound) {
+        this.enableErrorSound = enableErrorSound;
     }
 
-    @Override
-    public Action[] getPropertySheetHolderActions() {
-        return new Action[0];
+    public boolean isEnableFinishedSound() {
+        return enableFinishedSound;
     }
 
-    @Override
-    public Icon getPropertySheetHolderIcon() {
-        return null;
+    public void setEnableFinishedSound(boolean enableFinishedSound) {
+        this.enableFinishedSound = enableFinishedSound;
     }
 }

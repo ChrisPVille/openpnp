@@ -102,19 +102,28 @@ public interface Head extends Identifiable, Named, WizardConfigurable, PropertyS
 
     public void moveToSafeZ() throws Exception;
 
-    public List<PasteDispenser> getPasteDispensers();
-
-    public PasteDispenser getPasteDispenser(String id);
-
     public Camera getDefaultCamera() throws Exception;
 
     public Nozzle getDefaultNozzle() throws Exception;
 
-    public PasteDispenser getDefaultPasteDispenser() throws Exception;
-    
     public void setMachine(Machine machine);
     
     public Machine getMachine();
     
     public Location getParkLocation();
+
+    /**
+     * Returns true if any nozzle on the Head is currently carrying a part.
+     * @return
+     */
+    public boolean isCarryingPart(); 
+
+    /**
+     * Returns the maximum speed percentage allowed by any parts being carried
+     * by the Nozzles on the Head. The slowest part will dictate the max.
+     * @return
+     */
+	public double getMaxPartSpeed(); 
+	
+    public Actuator getZProbe(); 
 }

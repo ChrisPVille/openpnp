@@ -7,11 +7,11 @@ import org.jcodec.api.awt.SequenceEncoder;
 import org.junit.Test;
 import org.openpnp.CameraListener;
 import org.openpnp.machine.reference.ReferenceMachine;
+import org.openpnp.machine.reference.ReferencePnpJobProcessor;
 import org.openpnp.machine.reference.driver.NullDriver;
 import org.openpnp.model.Configuration;
 import org.openpnp.model.Job;
 import org.openpnp.spi.Camera;
-import org.openpnp.spi.JobProcessor;
 
 import com.google.common.io.Files;
 
@@ -47,7 +47,7 @@ public class SampleJobTest {
         // MpegEncodingCameraListener encoder = new MpegEncodingCameraListener(videoFile);
         // camera.startContinuousCapture(encoder, 25);
 
-        JobProcessor jobProcessor = machine.getPnpJobProcessor();
+        ReferencePnpJobProcessor jobProcessor = (ReferencePnpJobProcessor) machine.getPnpJobProcessor();
         jobProcessor.addTextStatusListener((text) -> {
             System.out.println(text);
         });

@@ -12,6 +12,7 @@ import org.openpnp.model.LengthUnit;
 import org.openpnp.model.Location;
 import org.openpnp.spi.Camera;
 import org.openpnp.spi.Head;
+import org.openpnp.spi.HeadMountable;
 import org.openpnp.spi.PropertySheetHolder;
 import org.openpnp.spi.VisionProvider;
 import org.openpnp.util.VisionUtils;
@@ -36,7 +37,6 @@ public class VisionUtilsTest {
 
         @Override
         public String getId() {
-            // TODO Auto-generated method stub
             return null;
         }
 
@@ -52,13 +52,16 @@ public class VisionUtilsTest {
 
         @Override
         public void moveTo(Location location, double speed) throws Exception {
-            // TODO Auto-generated method stub
 
         }
 
         @Override
         public void moveToSafeZ(double speed) throws Exception {
-            // TODO Auto-generated method stub
+
+        }
+
+        @Override
+        public void home() throws Exception {
 
         }
 
@@ -68,56 +71,61 @@ public class VisionUtilsTest {
         }
 
         @Override
+        public Location getLocation(HeadMountable tool) {
+            if (tool != null) {
+                return getLocation().subtract(tool.getCameraToolCalibratedOffset(this));
+            }
+
+            return getLocation();
+        }
+
+       @Override
+        public Location getCameraToolCalibratedOffset(Camera camera) {
+            return new Location(camera.getUnitsPerPixel().getUnits());
+        }
+
+        @Override
         public Wizard getConfigurationWizard() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public String getPropertySheetHolderTitle() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public PropertySheetHolder[] getChildPropertySheetHolders() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public PropertySheet[] getPropertySheets() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public Action[] getPropertySheetHolderActions() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public String getName() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public void setName(String name) {
-            // TODO Auto-generated method stub
 
         }
 
         @Override
         public Looking getLooking() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public void setLooking(Looking looking) {
-            // TODO Auto-generated method stub
 
         }
 
@@ -128,37 +136,41 @@ public class VisionUtilsTest {
 
         @Override
         public void setUnitsPerPixel(Location unitsPerPixel) {
-            // TODO Auto-generated method stub
 
         }
 
         @Override
         public BufferedImage capture() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
-        public void startContinuousCapture(CameraListener listener, int maximumFps) {
-            // TODO Auto-generated method stub
+        public BufferedImage captureForPreview() {
+            return null;
+        }
+
+        @Override
+        public BufferedImage captureRaw() {
+            return null;
+        }
+
+        @Override
+        public void startContinuousCapture(CameraListener listener) {
 
         }
 
         @Override
         public void stopContinuousCapture(CameraListener listener) {
-            // TODO Auto-generated method stub
 
         }
 
         @Override
         public void setVisionProvider(VisionProvider visionProvider) {
-            // TODO Auto-generated method stub
 
         }
 
         @Override
         public VisionProvider getVisionProvider() {
-            // TODO Auto-generated method stub
             return null;
         }
 
@@ -174,31 +186,26 @@ public class VisionUtilsTest {
 
         @Override
         public Icon getPropertySheetHolderIcon() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public void close() throws IOException {
-            // TODO Auto-generated method stub
 
         }
 
         @Override
         public BufferedImage settleAndCapture() {
-            // TODO Auto-generated method stub
             return null;
         }
 
         @Override
         public long getSettleTimeMs() {
-            // TODO Auto-generated method stub
             return 0;
         }
 
         @Override
         public void setSettleTimeMs(long settleTimeMs) {
-            // TODO Auto-generated method stub
 
         }
 

@@ -29,7 +29,6 @@ import java.net.URL;
 import java.util.List;
 
 import javax.imageio.ImageIO;
-import javax.swing.Action;
 import javax.xml.soap.SOAPException;
 
 import org.onvif.ver10.device.wsdl.GetDeviceInformationResponse;
@@ -90,8 +89,7 @@ public class OnvifIPCamera extends ReferenceCamera implements Runnable {
             if (snapshotURI == null) {
                 return null;
             }
-            BufferedImage img = ImageIO.read(snapshotURI);
-            return transformImage(resizeImage(img));
+            return resizeImage(ImageIO.read(snapshotURI));
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -124,11 +122,11 @@ public class OnvifIPCamera extends ReferenceCamera implements Runnable {
     }
 
     @Override
-    public synchronized void startContinuousCapture(CameraListener listener, int maximumFps) {
+    public synchronized void startContinuousCapture(CameraListener listener) {
         if (thread == null) {
             initCamera();
         }
-        super.startContinuousCapture(listener, maximumFps);
+        super.startContinuousCapture(listener);
     }
 
     public void run() {
@@ -136,7 +134,7 @@ public class OnvifIPCamera extends ReferenceCamera implements Runnable {
             try {
                 BufferedImage image = internalCapture();
                 if (image != null) {
-                    broadcastCapture(image);
+                    broadcastCapture(captureForPreview());
                 }
             }
             catch (Exception e) {
@@ -420,7 +418,6 @@ public class OnvifIPCamera extends ReferenceCamera implements Runnable {
 
     @Override
     public PropertySheetHolder[] getChildPropertySheetHolders() {
-        // TODO Auto-generated method stub
         return null;
     }
 }

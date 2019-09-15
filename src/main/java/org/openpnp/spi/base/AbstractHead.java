@@ -14,7 +14,6 @@ import org.openpnp.spi.Camera;
 import org.openpnp.spi.Head;
 import org.openpnp.spi.Machine;
 import org.openpnp.spi.Nozzle;
-import org.openpnp.spi.PasteDispenser;
 import org.openpnp.util.IdentifiableList;
 import org.simpleframework.xml.Attribute;
 import org.simpleframework.xml.Element;
@@ -37,11 +36,20 @@ public abstract class AbstractHead extends AbstractModelObject implements Head {
     @ElementList(required = false)
     protected IdentifiableList<Camera> cameras = new IdentifiableList<>();
 
-    @ElementList(required = false)
-    protected IdentifiableList<PasteDispenser> pasteDispensers = new IdentifiableList<>();
-    
     @Element(required = false)
     protected Location parkLocation = new Location(LengthUnit.Millimeters);
+    
+    @Element(required=false)
+    protected boolean softLimitsEnabled = false;
+
+    @Element(required = false)
+    protected Location minLocation = new Location(LengthUnit.Millimeters);
+
+    @Element(required = false)
+    protected Location maxLocation = new Location(LengthUnit.Millimeters);
+    
+    @Element(required = false)
+    protected String zProbeActuatorName;
 
     protected Machine machine;
 
@@ -61,9 +69,6 @@ public abstract class AbstractHead extends AbstractModelObject implements Head {
         }
         for (Actuator actuator : actuators) {
             actuator.setHead(this);
-        }
-        for (PasteDispenser pasteDispenser : pasteDispensers) {
-            pasteDispenser.setHead(this);
         }
     }
 
@@ -168,8 +173,18 @@ public abstract class AbstractHead extends AbstractModelObject implements Head {
         for (Actuator actuator : actuators) {
             actuator.moveToSafeZ(speed);
         }
-        for (PasteDispenser dispenser : pasteDispensers) {
-            dispenser.moveToSafeZ(speed);
+    }
+
+    @Override
+    public void home() throws Exception {
+        for (Nozzle nozzle : nozzles) {
+            nozzle.home();
+        }
+        for (Camera camera : cameras) {
+            camera.home();
+        }
+        for (Actuator actuator : actuators) {
+            actuator.home();
         }
     }
 
@@ -184,18 +199,7 @@ public abstract class AbstractHead extends AbstractModelObject implements Head {
     }
 
     @Override
-    public List<PasteDispenser> getPasteDispensers() {
-        return Collections.unmodifiableList(pasteDispensers);
-    }
-
-    @Override
-    public PasteDispenser getPasteDispenser(String id) {
-        return pasteDispensers.get(id);
-    }
-
-    @Override
     public Icon getPropertySheetHolderIcon() {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -215,15 +219,6 @@ public abstract class AbstractHead extends AbstractModelObject implements Head {
             throw new Exception("No default nozzle available on head " + getName());
         }
         return nozzles.get(0);
-    }
-
-    @Override
-    public PasteDispenser getDefaultPasteDispenser() throws Exception {
-        List<PasteDispenser> dispensers = getPasteDispensers();
-        if (dispensers == null || dispensers.isEmpty()) {
-            throw new Exception("No default paste dispenser available on head " + getName());
-        }
-        return dispensers.get(0);
     }
 
     @Override
@@ -247,5 +242,63 @@ public abstract class AbstractHead extends AbstractModelObject implements Head {
 
     public void setParkLocation(Location parkLocation) {
         this.parkLocation = parkLocation;
+    }
+
+    public boolean isCarryingPart() {
+        for (Nozzle nozzle : getNozzles()) {
+            if (nozzle.getPart() != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public double getMaxPartSpeed() {
+        double speed = 1;
+
+        for (Nozzle nozzle : getNozzles()) {
+            if (nozzle.getPart() != null) {
+                speed = Math.min(nozzle.getPart().getSpeed(), speed);
+            }
+        }
+
+        return speed;
+    }
+
+    public Location getMinLocation() {
+        return minLocation;
+    }
+
+    public void setMinLocation(Location minLocation) {
+        this.minLocation = minLocation;
+    }
+
+    public Location getMaxLocation() {
+        return maxLocation;
+    }
+
+    public void setMaxLocation(Location maxLocation) {
+        this.maxLocation = maxLocation;
+    }
+
+    public boolean isSoftLimitsEnabled() {
+        return softLimitsEnabled;
+    }
+
+    public void setSoftLimitsEnabled(boolean softLimitsEnabled) {
+        this.softLimitsEnabled = softLimitsEnabled;
+    }
+    
+    @Override
+    public Actuator getZProbe() {
+        return getActuatorByName(zProbeActuatorName); 
+    }
+
+    public String getzProbeActuatorName() {
+        return zProbeActuatorName;
+    }
+
+    public void setzProbeActuatorName(String zProbeActuatorName) {
+        this.zProbeActuatorName = zProbeActuatorName;
     }
 }

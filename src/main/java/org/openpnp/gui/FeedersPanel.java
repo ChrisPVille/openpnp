@@ -24,15 +24,20 @@ import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.prefs.Preferences;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
@@ -48,7 +53,11 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableRowSorter;
 
+import org.openpnp.events.BoardLocationSelectedEvent;
 import org.openpnp.events.FeederSelectedEvent;
+import org.openpnp.gui.JobPanel.SetCheckFidsAction;
+import org.openpnp.gui.JobPanel.SetEnabledAction;
+import org.openpnp.gui.JobPanel.SetSideAction;
 import org.openpnp.gui.components.AutoSelectTextTable;
 import org.openpnp.gui.components.ClassSelectionDialog;
 import org.openpnp.gui.support.ActionGroup;
@@ -58,12 +67,15 @@ import org.openpnp.gui.support.MessageBoxes;
 import org.openpnp.gui.support.Wizard;
 import org.openpnp.gui.support.WizardContainer;
 import org.openpnp.gui.tablemodel.FeedersTableModel;
+import org.openpnp.model.Board;
+import org.openpnp.model.BoardLocation;
 import org.openpnp.model.Configuration;
 import org.openpnp.model.Location;
 import org.openpnp.model.Part;
 import org.openpnp.spi.Camera;
 import org.openpnp.spi.Feeder;
 import org.openpnp.spi.Nozzle;
+import org.openpnp.spi.PropertySheetHolder.PropertySheet;
 import org.openpnp.util.MovableUtils;
 import org.openpnp.util.UiUtils;
 import org.pmw.tinylog.Logger;
@@ -83,9 +95,9 @@ public class FeedersPanel extends JPanel implements WizardContainer {
     private FeedersTableModel tableModel;
     private TableRowSorter<FeedersTableModel> tableSorter;
     private JTextField searchTextField;
-    private JPanel configurationPanel;
 
-    private ActionGroup feederSelectedActionGroup;
+    private ActionGroup singleSelectActionGroup;
+    private ActionGroup multiSelectActionGroup;
 
     private Preferences prefs = Preferences.userNodeForPackage(FeedersPanel.class);
 
@@ -113,10 +125,10 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         toolBar.add(btnDeleteFeeder);
 
         toolBar.addSeparator();
+        toolBar.add(pickFeederAction);
         toolBar.add(feedFeederAction);
         toolBar.add(moveCameraToPickLocation);
         toolBar.add(moveToolToPickLocation);
-        toolBar.add(pickFeederAction);
 
         JPanel panel_1 = new JPanel();
         panel.add(panel_1, BorderLayout.EAST);
@@ -147,6 +159,7 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         
         table = new AutoSelectTextTable(tableModel);
         tableSorter = new TableRowSorter<>(tableModel);
+        table.getColumnModel().moveColumn(1,  2);
 
         final JSplitPane splitPane = new JSplitPane();
         splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
@@ -163,18 +176,18 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         add(splitPane, BorderLayout.CENTER);
         splitPane.setLeftComponent(new JScrollPane(table));
         table.setRowSorter(tableSorter);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
-        JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-        splitPane.setRightComponent(tabbedPane);
+        JTabbedPane configurationPanel = new JTabbedPane(JTabbedPane.TOP);
+        splitPane.setRightComponent(configurationPanel);
 
-        configurationPanel = new JPanel();
-        tabbedPane.addTab("Configuration", null, configurationPanel, null);
-        configurationPanel.setLayout(new BorderLayout(0, 0));
-
-        feederSelectedActionGroup = new ActionGroup(deleteFeederAction, feedFeederAction,
-                pickFeederAction, moveCameraToPickLocation, moveToolToPickLocation);
-        feederSelectedActionGroup.setEnabled(false);
+        singleSelectActionGroup = new ActionGroup(deleteFeederAction, feedFeederAction,
+                pickFeederAction, moveCameraToPickLocation, moveToolToPickLocation,
+                setEnabledAction);
+        singleSelectActionGroup.setEnabled(false);
+        
+        multiSelectActionGroup = new ActionGroup(deleteFeederAction, setEnabledAction);
+        multiSelectActionGroup.setEnabled(false);
         
         table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
@@ -182,20 +195,31 @@ public class FeedersPanel extends JPanel implements WizardContainer {
                 if (e.getValueIsAdjusting()) {
                     return;
                 }
-
-                Feeder feeder = getSelectedFeeder();
                 
-                feederSelectedActionGroup.setEnabled(feeder != null);
+                List<Feeder> selections = getSelections();
+                if (selections.size() == 0) {
+                    singleSelectActionGroup.setEnabled(false);
+                    multiSelectActionGroup.setEnabled(false);
+                }
+                else if (selections.size() == 1) {
+                    multiSelectActionGroup.setEnabled(false);
+                    singleSelectActionGroup.setEnabled(true);
+                }
+                else {
+                    singleSelectActionGroup.setEnabled(false);
+                    multiSelectActionGroup.setEnabled(true);
+                }
 
+                Feeder feeder = getSelection();
+                
                 configurationPanel.removeAll();
                 if (feeder != null) {
-                    Wizard wizard = feeder.getConfigurationWizard();
-                    if (wizard != null) {
-                        wizard.setWizardContainer(FeedersPanel.this);
-                        JPanel panel = wizard.getWizardPanel();
-                        configurationPanel.add(panel);
+                    PropertySheet[] propertySheets = feeder.getPropertySheets();
+                    for (PropertySheet ps : propertySheets) {
+                        configurationPanel.addTab(ps.getPropertySheetTitle(), ps.getPropertySheetPanel());
                     }
                 }
+                
                 revalidate();
                 repaint();
                 
@@ -204,6 +228,15 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         });
 
         Configuration.get().getBus().register(this);
+        
+        JPopupMenu popupMenu = new JPopupMenu();
+
+        JMenu setEnabledMenu = new JMenu(setEnabledAction);
+        setEnabledMenu.add(new SetEnabledAction(true));
+        setEnabledMenu.add(new SetEnabledAction(false));
+        popupMenu.add(setEnabledMenu);
+
+        table.setComponentPopupMenu(popupMenu);
     }
     
     @Subscribe
@@ -229,19 +262,25 @@ public class FeedersPanel extends JPanel implements WizardContainer {
      * Activate the Feeders tab and show the Feeder for the specified Part. If none exists, prompt
      * the user to create a new one.
      * 
-     * @param feeder
+     * @param part
      */
     public void showFeederForPart(Part part) {
         mainFrame.showTab("Feeders");
+        searchTextField.setText("");
+        search();
 
-        Feeder feeder = findFeeder(part);
+        Feeder feeder = findFeeder(part, true);
+        // Prefer enabled feeders but fall back to disabled ones.
         if (feeder == null) {
+            feeder = findFeeder(part, false);
+        }
+        if (feeder == null) {            
             newFeeder(part);
         }
         else {
             table.getSelectionModel().clearSelection();
             for (int i = 0; i < tableModel.getRowCount(); i++) {
-                if (tableModel.getFeeder(i).getPart() == part) {
+                if (tableModel.getFeeder(i) == feeder) {
                     int index = table.convertRowIndexToView(i);
                     table.getSelectionModel().setSelectionInterval(index, index);
                     table.scrollRectToVisible(new Rectangle(table.getCellRect(index, 0, true)));
@@ -251,24 +290,32 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         }
     }
 
-    private Feeder findFeeder(Part part) {
+    private Feeder findFeeder(Part part, boolean enabled) {
         for (int i = 0; i < tableModel.getRowCount(); i++) {
-            if (tableModel.getFeeder(i).getPart() == part) {
-                return tableModel.getFeeder(i);
+            Feeder feeder = tableModel.getFeeder(i); 
+            if (feeder.getPart() == part && feeder.isEnabled() == enabled) {
+                return feeder;
             }
         }
         return null;
     }
 
-    private Feeder getSelectedFeeder() {
-        int index = table.getSelectedRow();
-
-        if (index == -1) {
+    public Feeder getSelection() {
+        List<Feeder> selections = getSelections();
+        if (selections.size() != 1) {
             return null;
         }
+        return selections.get(0);
+    }
 
-        index = table.convertRowIndexToModel(index);
-        return tableModel.getFeeder(index);
+    public List<Feeder> getSelections() {
+        ArrayList<Feeder> selections = new ArrayList<>();
+        int[] selectedRows = table.getSelectedRows();
+        for (int selectedRow : selectedRows) {
+            selectedRow = table.convertRowIndexToModel(selectedRow);
+            selections.add(Configuration.get().getMachine().getFeeders().get(selectedRow));
+        }
+        return selections;
     }
 
     private void search() {
@@ -323,8 +370,13 @@ public class FeedersPanel extends JPanel implements WizardContainer {
 
             configuration.getMachine().addFeeder(feeder);
             tableModel.refresh();
+
+            searchTextField.setText("");
+            search();
+
             Helpers.selectLastTableRow(table);
         }
+
         catch (Exception e) {
             MessageBoxes.errorBox(JOptionPane.getFrameForComponent(FeedersPanel.this),
                     "Feeder Error", e);
@@ -353,12 +405,24 @@ public class FeedersPanel extends JPanel implements WizardContainer {
 
         @Override
         public void actionPerformed(ActionEvent arg0) {
+            List<Feeder> selections = getSelections();
+            List<String> ids = selections.stream().map(Feeder::getName).collect(Collectors.toList());
+            String formattedIds;
+            if (ids.size() <= 3) {
+                formattedIds = String.join(", ", ids);
+            }
+            else {
+                formattedIds = String.join(", ", ids.subList(0, 3)) + ", and " + (ids.size() - 3) + " others";
+            }
+            
             int ret = JOptionPane.showConfirmDialog(getTopLevelAncestor(),
-                    "Are you sure you want to delete " + getSelectedFeeder().getName() + "?",
-                    "Delete " + getSelectedFeeder().getName() + "?", JOptionPane.YES_NO_OPTION);
+                    "Are you sure you want to delete " + formattedIds + "?",
+                    "Delete " + selections.size() + " feeders?", JOptionPane.YES_NO_OPTION);
             if (ret == JOptionPane.YES_OPTION) {
-                configuration.getMachine().removeFeeder(getSelectedFeeder());
-                tableModel.refresh();
+                for (Feeder feeder : selections) {
+                    configuration.getMachine().removeFeeder(feeder);
+                    tableModel.refresh();
+                }
             }
         }
     };
@@ -373,7 +437,7 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         @Override
         public void actionPerformed(ActionEvent arg0) {
             UiUtils.submitUiMachineTask(() -> {
-                Feeder feeder = getSelectedFeeder();
+                Feeder feeder = getSelection();
                 Nozzle nozzle = MainFrame.get().getMachineControls().getSelectedNozzle();
 
                 nozzle.moveToSafeZ();
@@ -394,7 +458,7 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         @Override
         public void actionPerformed(ActionEvent arg0) {
             UiUtils.submitUiMachineTask(() -> {
-                Feeder feeder = getSelectedFeeder();
+                Feeder feeder = getSelection();
                 Nozzle nozzle = MainFrame.get().getMachineControls().getSelectedNozzle();
 
                 nozzle.moveToSafeZ();
@@ -419,7 +483,7 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         @Override
         public void actionPerformed(ActionEvent arg0) {
             UiUtils.submitUiMachineTask(() -> {
-                Feeder feeder = getSelectedFeeder();
+                Feeder feeder = getSelection();
                 Camera camera = MainFrame.get().getMachineControls().getSelectedTool().getHead()
                         .getDefaultCamera();
                 Location pickLocation = feeder.getPickLocation();
@@ -439,12 +503,40 @@ public class FeedersPanel extends JPanel implements WizardContainer {
         @Override
         public void actionPerformed(ActionEvent arg0) {
             UiUtils.submitUiMachineTask(() -> {
-                Feeder feeder = getSelectedFeeder();
+                Feeder feeder = getSelection();
                 Nozzle nozzle = MainFrame.get().getMachineControls().getSelectedNozzle();
 
                 Location pickLocation = feeder.getPickLocation();
                 MovableUtils.moveToLocationAtSafeZ(nozzle, pickLocation);
             });
+        }
+    };
+    
+    public final Action setEnabledAction = new AbstractAction() {
+        {
+            putValue(NAME, "Set Enabled");
+            putValue(SHORT_DESCRIPTION, "Set board(s) enabled to...");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent arg0) {}
+    };
+
+    class SetEnabledAction extends AbstractAction {
+        final Boolean value;
+
+        public SetEnabledAction(Boolean value) {
+            this.value = value;
+            String name = value ? "Enabled" : "Disabled";
+            putValue(NAME, name);
+            putValue(SHORT_DESCRIPTION, "Set board(s) enabled to " + value);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent arg0) {
+            for (Feeder f : getSelections()) {
+                f.setEnabled(value);
+            }
         }
     };
 }

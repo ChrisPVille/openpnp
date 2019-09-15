@@ -77,16 +77,12 @@ import org.openpnp.machine.reference.ReferenceDriver;
 import org.openpnp.machine.reference.ReferenceHead;
 import org.openpnp.machine.reference.ReferenceHeadMountable;
 import org.openpnp.machine.reference.ReferenceNozzle;
-import org.openpnp.machine.reference.ReferencePasteDispenser;
 import org.openpnp.model.LengthUnit;
 import org.openpnp.model.Location;
 import org.openpnp.spi.PropertySheetHolder;
 import org.pmw.tinylog.Logger;
 import org.simpleframework.xml.Attribute;
 
-/**
- * TODO: Consider adding some type of heartbeat to the firmware.
- */
 public class LinuxCNC implements ReferenceDriver, Runnable {
 
     private static final double minimumRequiredVersion = 0.81;
@@ -207,7 +203,6 @@ public class LinuxCNC implements ReferenceDriver, Runnable {
 
     @Override
     public void actuate(ReferenceActuator actuator, double value) throws Exception {
-        // TODO Auto-generated method stub
 
     }
 
@@ -219,10 +214,13 @@ public class LinuxCNC implements ReferenceDriver, Runnable {
         if (connected) {
             sendCommand("set machine " + (enabled ? "on" : "off"));
         }
+        if (connected && !enabled) {
+            disconnect();
+        }
     }
 
     public synchronized void connect(String serverIp, int port) throws Exception {
-        // disconnect();
+        disconnect();
         Logger.debug("connect({}, {})", serverIp, port);
         SocketAddress sa = new InetSocketAddress(serverIp, port);
         socket = new Socket();
@@ -243,7 +241,6 @@ public class LinuxCNC implements ReferenceDriver, Runnable {
             // dump that is sent after reset.
             // responses = sendCommand(null, 3000);
         }
-        connected = true;
 
         responses = sendCommand("hello EMC x 1.1");
         responses.addAll(sendCommand("set enable EMCTOO"));
@@ -260,14 +257,7 @@ public class LinuxCNC implements ReferenceDriver, Runnable {
         // This will be used later to determine the return status.
         responses.addAll(sendCommand("set verbose on"));
 
-        processConnectionResponses(responses);
-
-        if (!connected) {
-            throw new Exception(
-                    "Unable to receive connection response from LinuxCNC ver 1.1. Check your server ip and port in machine.xml");
-        }
-
-        if (!connected) {
+        if (!processConnectionResponses(responses)) {
             throw new Exception(String.format(
                     "Unable to receive connection response from LinuxCNC. Check your server ip and port in machine.xml and that you are running at least version %f of LinuxCNCrsh",
                     minimumRequiredVersion));
@@ -291,18 +281,20 @@ public class LinuxCNC implements ReferenceDriver, Runnable {
         // Reset all axes to 0, in case the firmware was not reset on
         // connect.
         sendCommand("set mdi G92 X0 Y0 Z0 A0");
+        
+        connected = true;
     }
 
-    private void processConnectionResponses(List<String> responses) {
+    private boolean processConnectionResponses(List<String> responses) {
         for (String response : responses) {
             if (response.startsWith("HELLO ACK EMCNETSVR 1.1")) {
-
                 connectedVersion = 1.1;
-                connected = true;
                 Logger.debug(
                         String.format("Connected to LinuxCNCrsh Version: %.2f", connectedVersion));
+                return true;
             }
         }
+        return false;
     }
 
     public synchronized void disconnect() {
@@ -428,7 +420,6 @@ public class LinuxCNC implements ReferenceDriver, Runnable {
 
     @Override
     public Wizard getConfigurationWizard() {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -439,7 +430,6 @@ public class LinuxCNC implements ReferenceDriver, Runnable {
 
     @Override
     public PropertySheetHolder[] getChildPropertySheetHolders() {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -450,20 +440,11 @@ public class LinuxCNC implements ReferenceDriver, Runnable {
 
     @Override
     public Action[] getPropertySheetHolderActions() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Icon getPropertySheetHolderIcon() {
-        // TODO Auto-generated method stub
         return null;
-    }
-
-    @Override
-    public void dispense(ReferencePasteDispenser dispenser, Location startLocation,
-            Location endLocation, long dispenseTimeMilliseconds) throws Exception {
-        // TODO Auto-generated method stub
-
     }
 }
