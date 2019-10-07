@@ -38,6 +38,12 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
     @Attribute(required = false)
     private double zGap = 2;
 
+    @Attribute(required = false)
+    private double backlashX = 5.0;
+
+    @Attribute(required = false)
+    private double backlashY = 5.0;
+    
     protected double x, y, zA, c, c2;
     private Thread readerThread;
     private boolean disconnectRequested;
@@ -169,13 +175,34 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         }
 
         StringBuffer sb = new StringBuffer();
+        boolean backlashedX = false;
+        boolean backlashedY = false;
+        
         if (!Double.isNaN(x) && x != this.x) {
-            sb.append(String.format(Locale.US, "X%2.2f ", x));
-            this.x = x;
+            if(x < this.x) //We are moving toward the origin
+            {
+                sb.append(String.format(Locale.US, "X%2.2f ", x-backlashX));
+                this.x = x-backlashX;
+                backlashedX = true;
+            }
+            else
+            {
+                sb.append(String.format(Locale.US, "X%2.2f ", x));
+                this.x = x;
+            }
         }
         if (!Double.isNaN(y) && y != this.y) {
-            sb.append(String.format(Locale.US, "Y%2.2f ", y));
-            this.y = y;
+            if(y > this.y) //We are moving toward the origin
+            {
+                sb.append(String.format(Locale.US, "Y%2.2f ", y+backlashY));
+                this.y = y+backlashY;
+                backlashedY = true;
+            }
+            else
+            {
+                sb.append(String.format(Locale.US, "Y%2.2f ", y));
+                this.y = y;
+            }
         }
         int nozzleIndex = getNozzleIndex(nozzle);
         double oldC = (nozzleIndex == 0 ? this.c : this.c2);
@@ -233,6 +260,23 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         if (sb.length() > 0) {
             sb.append(String.format(Locale.US, "F%2.2f", feedRateMmPerMinute * speed));
             sendCommand("G0 " + sb.toString());
+            
+            if(backlashedX && backlashedY)
+            {
+                sendCommand(String.format(Locale.US, "G0 X%2.2f Y%2.2f", x, y));
+                this.x = x;
+                this.y = y;
+            }
+            if(backlashedX)
+            {
+                sendCommand(String.format(Locale.US, "G0 X%2.2f", x));
+                this.x = x;
+            }
+            if(backlashedY)
+            {
+                sendCommand(String.format(Locale.US, "G0 Y%2.2f", y));
+                this.y = y;
+            }
             dwell();
         }
     }
