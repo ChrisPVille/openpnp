@@ -39,10 +39,13 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
     private double zGap = 2;
 
     @Attribute(required = false)
-    private double backlashX = 5.0;
+    private double backlashX = 2.0;
 
     @Attribute(required = false)
-    private double backlashY = 5.0;
+    private double backlashY = 2.0;
+    
+    @Attribute(required = false)
+    private double backlashSpeed = 2000;    
     
     protected double x, y, zA, c, c2;
     private Thread readerThread;
@@ -263,18 +266,18 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
             
             if(backlashedX && backlashedY)
             {
-                sendCommand(String.format(Locale.US, "G0 X%2.2f Y%2.2f", x, y));
+                sendCommand(String.format(Locale.US, "G0 X%2.2f Y%2.2f F%2.2f", x, y, backlashSpeed));
                 this.x = x;
                 this.y = y;
             }
             if(backlashedX)
             {
-                sendCommand(String.format(Locale.US, "G0 X%2.2f", x));
+                sendCommand(String.format(Locale.US, "G0 X%2.2f F%2.2f", x, backlashSpeed));
                 this.x = x;
             }
             if(backlashedY)
             {
-                sendCommand(String.format(Locale.US, "G0 Y%2.2f", y));
+                sendCommand(String.format(Locale.US, "G0 Y%2.2f F%2.2f", y, backlashSpeed));
                 this.y = y;
             }
             dwell();
