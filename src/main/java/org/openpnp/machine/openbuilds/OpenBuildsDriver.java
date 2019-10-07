@@ -53,7 +53,7 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         }
         if (connected) {
             if (enabled) {
-		sendCommand("M999");
+                sendCommand("M999");
                 n1Vacuum(false);
                 n2Vacuum(false);
                 led(true);
@@ -67,7 +67,7 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         }
         if (connected && !enabled) {
             if (!connectionKeepAlive) {
-            	disconnect();
+                disconnect();
             }
         }
     }
@@ -75,23 +75,23 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
     @Override
     public void home(ReferenceHead head) throws Exception {
         
-	//Reset any triggered limit switches
-	sendCommand("M999");
+        //Reset any triggered limit switches
+        sendCommand("M999");
         
-	// We "home" Z by turning off the steppers, allowing the
+        // We "home" Z by turning off the steppers, allowing the
         // spring to pull the nozzle back up to home.
         sendCommand("M84");
         Thread.sleep(250);
         // And call that zero
         sendCommand("G92 Z0");
-	// Now move the head clockwise to ensure it is off of the microswitch
-	sendCommand("G0 Z-4.5");
-	// Once again let the head return to neutral
+        // Now move the head clockwise to ensure it is off of the microswitch
+        sendCommand("G0 Z-4.5");
+        // Once again let the head return to neutral
         sendCommand("M84");
         Thread.sleep(250);
-	// Then send the home command
-	sendCommand("G28 Z0", 10 * 1000);
-	//And correct for the 4degree rotation offset
+        // Then send the home command
+        sendCommand("G28 Z0", 10 * 1000);
+        //And correct for the 4degree rotation offset
         sendCommand("G92 Z-0.4");
 
         // Home X and Y
@@ -111,12 +111,12 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         if (actuator.getIndex() == 0) {
         sendCommand(on ? "M804" : "M805");
         }
-	else if (actuator.getIndex() == 1) {
-	sendCommand(on ? "M800" : "M801");
-	}
-	else if (actuator.getIndex() == 2) {
-	sendCommand(on ? "M802" : "M803");
-	}
+        else if (actuator.getIndex() == 1) {
+        sendCommand(on ? "M800" : "M801");
+        }
+        else if (actuator.getIndex() == 2) {
+        sendCommand(on ? "M802" : "M803");
+        }
     }
 
 
@@ -224,7 +224,7 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
                 a = -a;
             }
             if (a != this.zA) {
-		a/=10;
+                a/=10;
                 sb.append(String.format(Locale.US, "Z%2.2f ", a));
                 this.zA = a;
             }
@@ -359,7 +359,7 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
                     }
                     else if (comp.startsWith("Z:")) {
                         zA = Double.parseDouble(comp.split(":")[1]);
-			zA*=10;
+                        zA*=10;
                     }
                     else if (comp.startsWith("E:")) {
                         c = Double.parseDouble(comp.split(":")[1]);
