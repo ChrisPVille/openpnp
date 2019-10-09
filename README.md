@@ -6,7 +6,7 @@ Open Source SMT Pick and Place Hardware and Software
 
 ## What is this fork?
 
-So I decided to build a pick and place machine.  Originally based on the [Openbuilds Reference Design](https://github.com/openpnp/openpnp-openbuilds/wiki/Build-Instructions), I've made some modifications to my machine, enough that I needed to (customize the openbuilds driver as a result](https://github.com/ChrisPVille/openpnp/blob/openpnpMachineBuild_develop/src/main/java/org/openpnp/machine/openbuilds/OpenBuildsDriver.java).  The big differences are:
+So I decided to build a pick and place machine.  Originally based on the [Openbuilds Reference Design](https://github.com/openpnp/openpnp-openbuilds/wiki/Build-Instructions), I've made some modifications to my machine, enough that I needed to [customize the openbuilds driver as a result](https://github.com/ChrisPVille/openpnp/blob/openpnpMachineBuild_develop/src/main/java/org/openpnp/machine/openbuilds/OpenBuildsDriver.java).  The big differences are:
 
 * Larger build area at 750x750mm usable by at least one head
 * Single larger Y axis motor using a driveshaft to ensure the axis stays aligned
