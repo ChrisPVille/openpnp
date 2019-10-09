@@ -4,45 +4,16 @@
 
 Open Source SMT Pick and Place Hardware and Software
 
-## Introduction
+## What is this fork?
 
-OpenPnP is a project to create the plans, prototype and software for a completely Open Source SMT
-pick and place machine that anyone can afford. I believe that with the ubiquity of cheap, precise
-motion control hardware, some ingenuity and plenty of Open Source software it should be possible
-to build and own a fully functional SMT pick and place machine for under $1000.
+So I decided to build a pick and place machine.  Originally based on the [Openbuilds Reference Design](https://github.com/openpnp/openpnp-openbuilds/wiki/Build-Instructions), I've made some modifications to my machine, enough that I needed to (customize the openbuilds driver as a result](https://github.com/ChrisPVille/openpnp/blob/openpnpMachineBuild_develop/src/main/java/org/openpnp/machine/openbuilds/OpenBuildsDriver.java).  The big differences are:
 
-## Project Status
+* Larger build area at 750x750mm usable by at least one head
+* Single larger Y axis motor using a driveshaft to ensure the axis stays aligned
+* Industrial vacuum solenoids and vacuum accumulator to reduce dwell times to under 100ms
+* External stepper motor drivers and higher operating voltage/current with peak movement speeds over 100000 mm/m (1.6 m/s)
+* Software backlash compensation (which the openbuilds driver never got)
 
-OpenPnP is stable and in wide use. It is still under heavy development and new features are added continuously. See the [Downloads](http://openpnp.org/downloads) page to get started.
+Altogether the result is around 0.1mm absolute accuracy and >2500CPH when not using vision.
 
-If you would like to keep up with our progress you can
-[Watch this project on GitHub](http://github.com/openpnp/openpnp), check out
-[our Twitter](http://twitter.com/openpnp), [join the discussion group](http://groups.google.com/group/openpnp),
-or come chat with us on Freenode IRC at #openpnp. If you don't have an IRC client,
-you can [use this web based one](http://webchat.freenode.net/?channels=openpnp)
-
-## Contributing
-
-[![Build Status](https://travis-ci.org/openpnp/openpnp.svg?branch=develop)](https://travis-ci.org/openpnp/openpnp)
-[![Help Wanted](https://img.shields.io/github/issues-raw/openpnp/openpnp/help-wanted.svg?label=help-wanted&colorB=5319e7)](https://github.com/openpnp/openpnp/labels/help-wanted)
-[![Bugs](https://img.shields.io/github/issues-raw/openpnp/openpnp/bug.svg?label=bugs&colorB=D9472F)](https://github.com/openpnp/openpnp/labels/bug)
-[![Feature Requests](https://img.shields.io/github/issues-raw/openpnp/openpnp/feature-request.svg?label=feature-requests&colorB=bfd4f2)](https://github.com/openpnp/openpnp/labels/feature-request)
-[![Enhancements](https://img.shields.io/github/issues-raw/openpnp/openpnp/enhancement.svg?label=enhancements&colorB=0052cc)](https://github.com/openpnp/openpnp/labels/enhancement)
-
-
-Before starting work on a pull request, please read: https://github.com/openpnp/openpnp/wiki/Developers-Guide#contributing
-
-Summary of guidelines:
-
-* One pull request per issue.
-* Describe the change.
-* Follow the coding style.
-* Include tests and documentation.
-* Think of the big picture.
-
-## Thanks
-
-Many thanks to ej-technologies for providing a complimentary license of install4j. install4j
-creates high quality, professional installers for Java applications.
-
-More information at http://www.ej-technologies.com/products/install4j/overview.html.
+For now the work is fine-tuning the machine, adjusting the driver for OpenPnP 2.0, and getting everything mounted in its permanent home.
