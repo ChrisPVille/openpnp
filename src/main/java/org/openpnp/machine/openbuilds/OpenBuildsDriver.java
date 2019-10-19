@@ -33,10 +33,7 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
     private double zCamRadius = 24;
 
     @Attribute(required = false)
-    private double zCamWheelRadius = 9.5;
-
-    @Attribute(required = false)
-    private double zGap = 2;
+    private double zOffset = 17.5;
 
     @Attribute(required = false)
     private double backlashX = 2.0;
@@ -65,13 +62,14 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
                 sendCommand("M999");
                 n1Vacuum(false);
                 n2Vacuum(false);
-                led(true);
+                downLED(true);
             }
             else {
                 sendCommand("M84");
                 n1Vacuum(false);
                 n2Vacuum(false);
-                led(false);
+                downLED(false);
+                upLED(false);
             }
         }
         if (connected && !enabled) {
@@ -100,8 +98,8 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         Thread.sleep(250);
         // Then send the home command
         sendCommand("G28 Z0", 10 * 1000);
-        //And correct for the 4degree rotation offset
-        sendCommand("G92 Z-0.4");
+        //And correct for the 5degree rotation offset
+        sendCommand("G92 Z-0.5");
 
         // Home X and Y
         sendCommand("G28 X0 Y0", 60 * 1000);
@@ -117,14 +115,15 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
 
     @Override
     public void actuate(ReferenceActuator actuator, boolean on) throws Exception {
-        if (actuator.getIndex() == 0) {
-        sendCommand(on ? "M804" : "M805");
-        }
-        else if (actuator.getIndex() == 1) {
-        sendCommand(on ? "M800" : "M801");
-        }
-        else if (actuator.getIndex() == 2) {
-        sendCommand(on ? "M802" : "M803");
+        switch(actuator.getIndex()) {
+            case 0: downLED(on);
+                    break;
+            case 1: n1Vacuum(on);
+                    break;
+            case 2: n2Vacuum(on);
+                    break;
+            case 3: upLED(on);
+                    break;
         }
     }
 
@@ -142,7 +141,7 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
             if (getNozzleIndex(nozzle) == 0) {
                 z = -z;
             }
-            z += zCamWheelRadius + zGap;
+            z += zOffset;
             int nozzleIndex = getNozzleIndex(nozzle);
             return new Location(LengthUnit.Millimeters, x, y, z,
                     Utils2D.normalizeAngle(nozzleIndex == 0 ? c : c2)).add(hm.getHeadOffsets());
@@ -248,15 +247,21 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         }
 
         if (!Double.isNaN(z)) {
-            double a = Math.toDegrees(Math.asin((z - zCamWheelRadius - zGap) / zCamRadius));
+            if (z < 0.0) {
+                z = 0;
+            }
+            double a = Math.toDegrees(Math.asin((z - zOffset) / zCamRadius));
             Logger.debug("nozzle {} {} {}", z, zCamRadius, a);
+            if (a > 0) {
+                a = 0;
+            }
             if (nozzleIndex == 0) {
                 a = -a;
             }
             if (a != this.zA) {
+                this.zA = a;
                 a/=10;
                 sb.append(String.format(Locale.US, "Z%2.2f ", a));
-                this.zA = a;
             }
         }
 
@@ -570,7 +575,11 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         sendCommand(on ? "M802" : "M803");
     }
 
-    private void led(boolean on) throws Exception {
+    private void downLED(boolean on) throws Exception {
         sendCommand(on ? "M804" : "M805");
+    }
+    
+    private void upLED(boolean on) throws Exception {
+        sendCommand(on ? "M806" : "M807");
     }
 }
