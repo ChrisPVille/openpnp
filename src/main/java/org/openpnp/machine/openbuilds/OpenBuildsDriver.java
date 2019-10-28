@@ -42,7 +42,13 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
     private double backlashY = 2.0;
     
     @Attribute(required = false)
-    private double backlashSpeed = 2000;    
+    private double backlashSpeed = 2000;
+    
+    @Attribute(required = false)
+    private boolean backlash = true;
+    
+    @Attribute(required = false)
+    private double zRotError = 0.0;
     
     protected double x, y, zA, c, c2;
     private Thread readerThread;
@@ -62,7 +68,8 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
                 sendCommand("M999");
                 n1Vacuum(false);
                 n2Vacuum(false);
-                downLED(true);
+                downLED(false);
+                upLED(false);
             }
             else {
                 sendCommand("M84");
@@ -98,8 +105,8 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         Thread.sleep(250);
         // Then send the home command
         sendCommand("G28 Z0", 10 * 1000);
-        //And correct for the 5degree rotation offset
-        sendCommand("G92 Z-0.5");
+        //And correct for the rotation offset
+        sendCommand(String.format(Locale.US, "G92 Z%2.2f", zRotError));
 
         // Home X and Y
         sendCommand("G28 X0 Y0", 60 * 1000);
@@ -123,6 +130,8 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
             case 2: n2Vacuum(on);
                     break;
             case 3: upLED(on);
+                    break;
+            case 4: setBacklash(on);
                     break;
         }
     }
@@ -181,7 +190,7 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
         boolean backlashedY = false;
         
         if (!Double.isNaN(x) && x != this.x) {
-            if(x < this.x) //We are moving toward the origin
+            if(x < this.x && backlash) //We are moving toward the origin
             {
                 sb.append(String.format(Locale.US, "X%2.2f ", x-backlashX));
                 this.x = x-backlashX;
@@ -194,7 +203,7 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
             }
         }
         if (!Double.isNaN(y) && y != this.y) {
-            if(y > this.y) //We are moving toward the origin
+            if(y > this.y && backlash) //We are moving toward the origin
             {
                 sb.append(String.format(Locale.US, "Y%2.2f ", y+backlashY));
                 this.y = y+backlashY;
@@ -581,5 +590,9 @@ public class OpenBuildsDriver extends AbstractReferenceDriver implements Runnabl
     
     private void upLED(boolean on) throws Exception {
         sendCommand(on ? "M806" : "M807");
+    }
+    
+    private void setBacklash(boolean en) {
+        this.backlash = en;
     }
 }
